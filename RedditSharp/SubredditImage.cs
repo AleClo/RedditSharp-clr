@@ -7,10 +7,10 @@ namespace RedditSharp
       private const string DeleteImageUrl = "/api/delete_sr_img";
 
       private Reddit Reddit { get; set; }
-      private IWebAgent WebAgent { get; set; }
+      private IAsyncWebAgent WebAgent { get; set; }
 
       public SubredditImage(Reddit reddit, SubredditStyle subredditStyle,
-         string cssLink, string name, IWebAgent webAgent)
+         string cssLink, string name, IAsyncWebAgent webAgent)
       {
          Reddit = reddit;
          WebAgent = webAgent;
@@ -20,7 +20,7 @@ namespace RedditSharp
       }
 
       public SubredditImage(Reddit reddit, SubredditStyle subreddit,
-         string cssLink, string name, string url, IWebAgent webAgent)
+         string cssLink, string name, string url, IAsyncWebAgent webAgent)
          : this(reddit, subreddit, cssLink, name, webAgent)
       {
          Url = new Uri(url);
@@ -39,17 +39,14 @@ namespace RedditSharp
 
       public void Delete()
       {
-         var request = WebAgent.CreatePost(DeleteImageUrl);
-         var stream = request.GetRequestStream();
-         WebAgent.WritePostBody(stream, new
+         var data = new
          {
             img_name = Name,
             uh = Reddit.User.Modhash,
             r = SubredditStyle.Subreddit.Name
-         });
-         stream.Close();
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
+         };
+         var response = WebAgent.Post(DeleteImageUrl, data);
+
          SubredditStyle.Images.Remove(this);
       }
    }

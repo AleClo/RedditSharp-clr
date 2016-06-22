@@ -11,7 +11,7 @@ namespace RedditSharp
    {
       private Reddit Reddit { get; set; }
       private Subreddit Subreddit { get; set; }
-      private IWebAgent WebAgent { get; set; }
+      private IAsyncWebAgent WebAgent { get; set; }
 
       private const string GetWikiPageUrl = "/r/{0}/wiki/{1}.json?v={2}";
       private const string GetWikiPagesUrl = "/r/{0}/wiki/pages.json";
@@ -29,10 +29,8 @@ namespace RedditSharp
       {
          get
          {
-            var request = WebAgent.CreateGet(string.Format(GetWikiPagesUrl, Subreddit.Name));
-            var response = request.GetResponse();
-            string json = WebAgent.GetResponseString(response.GetResponseStream());
-            return JObject.Parse(json)["data"].Values<string>();
+            var json = WebAgent.Get(string.Format(GetWikiPagesUrl, Subreddit.Name));
+            return json["data"].Values<string>();
          }
       }
 
@@ -44,7 +42,7 @@ namespace RedditSharp
          }
       }
 
-      protected internal Wiki(Reddit reddit, Subreddit subreddit, IWebAgent webAgent)
+      protected internal Wiki(Reddit reddit, Subreddit subreddit, IAsyncWebAgent webAgent)
       {
          Reddit = reddit;
          Subreddit = subreddit;
@@ -53,9 +51,7 @@ namespace RedditSharp
 
       public WikiPage GetPage(string page, string version = null)
       {
-         var request = WebAgent.CreateGet(string.Format(GetWikiPageUrl, Subreddit.Name, page, version));
-         var response = request.GetResponse();
-         var json = JObject.Parse(WebAgent.GetResponseString(response.GetResponseStream()));
+         var json = WebAgent.Get(string.Format(GetWikiPageUrl, Subreddit.Name, page, version));
          var result = new WikiPage(Reddit, json["data"], WebAgent);
          return result;
       }
@@ -64,24 +60,23 @@ namespace RedditSharp
 
       public WikiPageSettings GetPageSettings(string name)
       {
-         var request = WebAgent.CreateGet(string.Format(WikiPageSettingsUrl, Subreddit.Name, name));
-         var response = request.GetResponse();
-         var json = JObject.Parse(WebAgent.GetResponseString(response.GetResponseStream()));
+         var json = WebAgent.Get(string.Format(WikiPageSettingsUrl, Subreddit.Name, name));
+
          var result = new WikiPageSettings(Reddit, json["data"], WebAgent);
          return result;
       }
 
       public void SetPageSettings(string name, WikiPageSettings settings)
       {
-         var request = WebAgent.CreatePost(string.Format(WikiPageSettingsUrl, Subreddit.Name, name));
-         WebAgent.WritePostBody(request.GetRequestStream(), new
+         var data = new
          {
             page = name,
             permlevel = settings.PermLevel,
             listed = settings.Listed,
             uh = Reddit.User.Modhash
-         });
-         var response = request.GetResponse();
+         };
+
+         var response = WebAgent.Post(string.Format(WikiPageSettingsUrl, Subreddit.Name, name), data);
       }
 
       #endregion
@@ -107,7 +102,6 @@ namespace RedditSharp
 
       public void EditPage(string page, string content, string previous = null, string reason = null)
       {
-         var request = WebAgent.CreatePost(string.Format(WikiPageEditUrl, Subreddit.Name));
          dynamic param = new
          {
             content = content,
@@ -125,46 +119,45 @@ namespace RedditSharp
             addParams.Add("reason");
             addParams.Add(reason);
          }
-         WebAgent.WritePostBody(request.GetRequestStream(), param, addParams.ToArray());
-         var response = request.GetResponse();
+
+         var response = WebAgent.Post(string.Format(WikiPageEditUrl, Subreddit.Name), param, addParams.ToArray());
+
+
       }
 
       public void HidePage(string page, string revision)
       {
-         var request = WebAgent.CreatePost(string.Format(HideWikiPageUrl, Subreddit.Name));
-         WebAgent.WritePostBody(request.GetRequestStream(), new
+         var data = new
          {
             page = page,
             revision = revision,
             uh = Reddit.User.Modhash
-         });
-         var response = request.GetResponse();
+         };
+         var response = WebAgent.Post(string.Format(HideWikiPageUrl, Subreddit.Name), data);
       }
 
       public void RevertPage(string page, string revision)
       {
-         var request = WebAgent.CreatePost(string.Format(RevertWikiPageUrl, Subreddit.Name));
-         WebAgent.WritePostBody(request.GetRequestStream(), new
+         var data = new
          {
             page = page,
             revision = revision,
             uh = Reddit.User.Modhash
-         });
-         var response = request.GetResponse();
+         };
+         var response = WebAgent.Post(string.Format(RevertWikiPageUrl, Subreddit.Name), data);
       }
 
       public void SetPageEditor(string page, string username, bool allow)
       {
-         var request =
-            WebAgent.CreatePost(string.Format(allow ? WikiPageAllowEditorAddUrl : WikiPageAllowEditorDelUrl,
-               Subreddit.Name));
-         WebAgent.WritePostBody(request.GetRequestStream(), new
+         var data =new
          {
             page = page,
             username = username,
             uh = Reddit.User.Modhash
-         });
-         var response = request.GetResponse();
+         };
+
+         var response = WebAgent.Post(string.Format(allow ? WikiPageAllowEditorAddUrl : WikiPageAllowEditorDelUrl,
+            Subreddit.Name), data);
       }
 
       #region Obsolete Getter Methods

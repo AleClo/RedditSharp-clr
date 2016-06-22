@@ -12,11 +12,9 @@ namespace RedditSharp
    {
       private const string ToolBoxUserNotesWiki = "/r/{0}/wiki/usernotes";
 
-      public static IEnumerable<TBUserNote> GetUserNotes(IWebAgent webAgent, string subName)
+      public static IEnumerable<TBUserNote> GetUserNotes(IAsyncWebAgent webAgent, string subName)
       {
-         var request = webAgent.CreateGet(String.Format(ToolBoxUserNotesWiki, subName));
-         var reqResponse = webAgent.ExecuteRequest(request);
-         var response = JObject.Parse(reqResponse["data"]["content_md"].Value<string>());
+         var response = webAgent.Get(String.Format(ToolBoxUserNotesWiki, subName));
 
          int version = response["ver"].Value<int>();
          string[] mods = response["constants"]["users"].Values<string>().ToArray();

@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Net.Http;
 using Newtonsoft.Json.Linq;
 using System.Web;
 using RedditSharp.Things;
@@ -11,16 +13,16 @@ namespace RedditSharp
       private const string UpdateCssUrl = "/api/subreddit_stylesheet";
 
       private Reddit Reddit { get; set; }
-      private IWebAgent WebAgent { get; set; }
+      private IAsyncWebAgent WebAgent { get; set; }
 
-      public SubredditStyle(Reddit reddit, Subreddit subreddit, IWebAgent webAgent)
+      public SubredditStyle(Reddit reddit, Subreddit subreddit, IAsyncWebAgent webAgent)
       {
          Reddit = reddit;
          Subreddit = subreddit;
          WebAgent = webAgent;
       }
 
-      public SubredditStyle(Reddit reddit, Subreddit subreddit, JToken json, IWebAgent webAgent)
+      public SubredditStyle(Reddit reddit, Subreddit subreddit, JToken json, IAsyncWebAgent webAgent)
          : this(reddit, subreddit, webAgent)
       {
          Images = new List<SubredditImage>();
@@ -40,24 +42,22 @@ namespace RedditSharp
 
       public void UpdateCss()
       {
-         var request = WebAgent.CreatePost(UpdateCssUrl);
-         var stream = request.GetRequestStream();
-         WebAgent.WritePostBody(stream, new
+
+        var data = new
          {
             op = "save",
             stylesheet_contents = CSS,
             uh = Reddit.User.Modhash,
             api_type = "json",
             r = Subreddit.Name
-         });
-         stream.Close();
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
-         var json = JToken.Parse(data);
+         };
+
+         var json = WebAgent.Post(UpdateCssUrl, data);
       }
 
       public void UploadImage(string name, ImageType imageType, byte[] file)
       {
+         /*
          var request = WebAgent.CreatePost(UploadImageUrl);
          var formData = new MultipartFormBuilder(request);
          formData.AddDynamic(new
@@ -71,9 +71,14 @@ namespace RedditSharp
          });
          formData.AddFile("file", "foo.png", file, imageType == ImageType.PNG ? "image/png" : "image/jpeg");
          formData.Finish();
+
+
          var response = request.GetResponse();
          var data = WebAgent.GetResponseString(response.GetResponseStream());
          // TODO: Detect errors
+
+   */
+   throw new NotImplementedException();
       }
    }
 

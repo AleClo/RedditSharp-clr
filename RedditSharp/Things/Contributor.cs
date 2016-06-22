@@ -13,7 +13,7 @@ namespace RedditSharp.Things
       [JsonConverter(typeof (UnixTimestampConverter))]
       public DateTime DateAdded { get; set; }
 
-      public Contributor Init(Reddit reddit, JToken json, IWebAgent webAgent)
+      public Contributor Init(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
       {
          CommonInit(json);
          JsonConvert.PopulateObject(json.ToString(), this, reddit.JsonSerializerSettings);

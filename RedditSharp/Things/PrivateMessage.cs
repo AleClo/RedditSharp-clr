@@ -14,7 +14,7 @@ namespace RedditSharp.Things
       private const string CommentUrl = "/api/comment";
 
       private Reddit Reddit { get; set; }
-      private IWebAgent WebAgent { get; set; }
+      private IAsyncWebAgent WebAgent { get; set; }
 
       [JsonProperty("body")]
       public string Body { get; set; }
@@ -85,14 +85,14 @@ namespace RedditSharp.Things
          }
       }
 
-      public PrivateMessage Init(Reddit reddit, JToken json, IWebAgent webAgent)
+      public PrivateMessage Init(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
       {
          CommonInit(reddit, json, webAgent);
          JsonConvert.PopulateObject(json["data"].ToString(), this, reddit.JsonSerializerSettings);
          return this;
       }
 
-      public async Task<PrivateMessage> InitAsync(Reddit reddit, JToken json, IWebAgent webAgent)
+      public async Task<PrivateMessage> InitAsync(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
       {
          CommonInit(reddit, json, webAgent);
          await
@@ -101,7 +101,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      private void CommonInit(Reddit reddit, JToken json, IWebAgent webAgent)
+      private void CommonInit(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
       {
          base.Init(json);
          Reddit = reddit;
@@ -134,33 +134,28 @@ namespace RedditSharp.Things
 
       public void SetAsRead()
       {
-         var request = WebAgent.CreatePost(SetAsReadUrl);
-         WebAgent.WritePostBody(request.GetRequestStream(), new
+         var data = new
          {
             id = FullName,
             uh = Reddit.User.Modhash,
             api_type = "json"
-         });
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
+         };
+
+         WebAgent.Post(SetAsReadUrl, data);
       }
 
       public void Reply(string message)
       {
          if (Reddit.User == null)
             throw new AuthenticationException("No user logged in.");
-         var request = WebAgent.CreatePost(CommentUrl);
-         var stream = request.GetRequestStream();
-         WebAgent.WritePostBody(stream, new
+         var data = new
          {
             text = message,
             thing_id = FullName,
             uh = Reddit.User.Modhash
-         });
-         stream.Close();
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
-         var json = JObject.Parse(data);
+         };
+
+         WebAgent.Post(CommentUrl, data);
       }
    }
 }

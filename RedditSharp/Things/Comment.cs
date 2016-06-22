@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Authentication;
 using System.Threading.Tasks;
+using System.Web;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -22,9 +23,9 @@ namespace RedditSharp.Things
       private Reddit Reddit { get; set; }
 
       [JsonIgnore]
-      private IWebAgent WebAgent { get; set; }
+      private IAsyncWebAgent WebAgent { get; set; }
 
-      public Comment Init(Reddit reddit, JToken json, IWebAgent webAgent, Thing sender)
+      public Comment Init(Reddit reddit, JToken json, IAsyncWebAgent webAgent, Thing sender)
       {
          var data = CommonInit(reddit, json, webAgent, sender);
          ParseComments(reddit, json, webAgent, sender);
@@ -32,7 +33,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      public async Task<Comment> InitAsync(Reddit reddit, JToken json, IWebAgent webAgent, Thing sender)
+      public async Task<Comment> InitAsync(Reddit reddit, JToken json, IAsyncWebAgent webAgent, Thing sender)
       {
          var data = CommonInit(reddit, json, webAgent, sender);
          await ParseCommentsAsync(reddit, json, webAgent, sender);
@@ -41,7 +42,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      private JToken CommonInit(Reddit reddit, JToken json, IWebAgent webAgent, Thing sender)
+      private JToken CommonInit(Reddit reddit, JToken json, IAsyncWebAgent webAgent, Thing sender)
       {
          base.Init(reddit, webAgent, json);
          var data = json["data"];
@@ -59,7 +60,7 @@ namespace RedditSharp.Things
          return data;
       }
 
-      private void ParseComments(Reddit reddit, JToken data, IWebAgent webAgent, Thing sender)
+      private void ParseComments(Reddit reddit, JToken data, IAsyncWebAgent webAgent, Thing sender)
       {
          // Parse sub comments
          var replies = data["data"]["replies"];
@@ -72,7 +73,7 @@ namespace RedditSharp.Things
          Comments = subComments.ToArray();
       }
 
-      private async Task ParseCommentsAsync(Reddit reddit, JToken data, IWebAgent webAgent, Thing sender)
+      private async Task ParseCommentsAsync(Reddit reddit, JToken data, IAsyncWebAgent webAgent, Thing sender)
       {
          // Parse sub comments
          var replies = data["data"]["replies"];
@@ -152,31 +153,17 @@ namespace RedditSharp.Things
       {
          if (Reddit.User == null)
             throw new AuthenticationException("No user logged in.");
-         var request = WebAgent.CreatePost(CommentUrl);
-         var stream = request.GetRequestStream();
-         WebAgent.WritePostBody(stream, new
+
+         var data = new
          {
             text = message,
             thing_id = FullName,
             uh = Reddit.User.Modhash,
             api_type = "json"
             //r = Subreddit
-         });
-         stream.Close();
-         try
-         {
-            var response = request.GetResponse();
-            var data = WebAgent.GetResponseString(response.GetResponseStream());
-            var json = JObject.Parse(data);
-            if (json["json"]["ratelimit"] != null)
-               throw new RateLimitException(TimeSpan.FromSeconds(json["json"]["ratelimit"].ValueOrDefault<double>()));
-            return new Comment().Init(Reddit, json["json"]["data"]["things"][0], WebAgent, this);
-         }
-         catch (WebException ex)
-         {
-            var error = new StreamReader(ex.Response.GetResponseStream()).ReadToEnd();
-            return null;
-         }
+         };
+         var json = WebAgent.Post(CommentUrl, data);
+         return new Comment().Init(Reddit, json["json"]["data"]["things"][0], WebAgent, this);
       }
 
       /// <summary>
@@ -188,17 +175,16 @@ namespace RedditSharp.Things
          if (Reddit.User == null)
             throw new Exception("No user logged in.");
 
-         var request = WebAgent.CreatePost(EditUserTextUrl);
-         WebAgent.WritePostBody(request.GetRequestStream(), new
+         var data = new
          {
             api_type = "json",
             text = newText,
             thing_id = FullName,
             uh = Reddit.User.Modhash
-         });
-         var response = request.GetResponse();
-         var result = WebAgent.GetResponseString(response.GetResponseStream());
-         JToken json = JToken.Parse(result);
+         };
+
+         JToken json = WebAgent.Post(EditUserTextUrl, data);
+
          if (json["json"].ToString().Contains("\"errors\": []"))
             Body = newText;
          else
@@ -207,19 +193,20 @@ namespace RedditSharp.Things
 
       private string SimpleAction(string endpoint)
       {
+         // todo: why is this method here?
+
          if (Reddit.User == null)
             throw new AuthenticationException("No user logged in.");
          var request = WebAgent.CreatePost(endpoint);
          var stream = request.GetRequestStream();
-         WebAgent.WritePostBody(stream, new
+         var data = new
          {
             id = FullName,
             uh = Reddit.User.Modhash
-         });
-         stream.Close();
+         };
          var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
-         return data;
+         var json = WebAgent.Post(endpoint, data);
+         return data.ToString();
       }
 
       public void Del()
@@ -239,30 +226,24 @@ namespace RedditSharp.Things
 
       private void RemoveImpl(bool spam)
       {
-         var request = WebAgent.CreatePost(RemoveUrl);
-         var stream = request.GetRequestStream();
-         WebAgent.WritePostBody(stream, new
+         var data = new
          {
             id = FullName,
             spam = spam,
             uh = Reddit.User.Modhash
-         });
-         stream.Close();
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
+         };
+         WebAgent.Post(RemoveUrl, data);
       }
 
       public void SetAsRead()
       {
-         var request = WebAgent.CreatePost(SetAsReadUrl);
-         WebAgent.WritePostBody(request.GetRequestStream(), new
+         var data = new
          {
             id = FullName,
             uh = Reddit.User.Modhash,
             api_type = "json"
-         });
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
+         };
+         WebAgent.Post(SetAsReadUrl, data);
       }
    }
 }

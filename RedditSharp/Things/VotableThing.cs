@@ -41,19 +41,19 @@ namespace RedditSharp.Things
       private const string DistinguishUrl = "/api/distinguish";
 
       [JsonIgnore]
-      private IWebAgent WebAgent { get; set; }
+      private IAsyncWebAgent WebAgent { get; set; }
 
       [JsonIgnore]
       private Reddit Reddit { get; set; }
 
-      protected VotableThing Init(Reddit reddit, IWebAgent webAgent, JToken json)
+      protected VotableThing Init(Reddit reddit, IAsyncWebAgent webAgent, JToken json)
       {
          CommonInit(reddit, webAgent, json);
          JsonConvert.PopulateObject(json["data"].ToString(), this, Reddit.JsonSerializerSettings);
          return this;
       }
 
-      protected async Task<VotableThing> InitAsync(Reddit reddit, IWebAgent webAgent, JToken json)
+      protected async Task<VotableThing> InitAsync(Reddit reddit, IAsyncWebAgent webAgent, JToken json)
       {
          CommonInit(reddit, webAgent, json);
          await
@@ -62,7 +62,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      private void CommonInit(Reddit reddit, IWebAgent webAgent, JToken json)
+      private void CommonInit(Reddit reddit, IAsyncWebAgent webAgent, JToken json)
       {
          base.Init(reddit, json);
          Reddit = reddit;
@@ -128,19 +128,16 @@ namespace RedditSharp.Things
 
       public void SetVote(VoteType type)
       {
-         if (this.Vote == type) return;
+         if (this.Vote == type)
+            return;
 
-         var request = WebAgent.CreatePost(VoteUrl);
-         var stream = request.GetRequestStream();
-         WebAgent.WritePostBody(stream, new
+         var data = new
          {
             dir = (int) type,
             id = FullName,
             uh = Reddit.User.Modhash
-         });
-         stream.Close();
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
+         };
+         WebAgent.Post(VoteUrl, data);
 
          if (Liked == true) Upvotes--;
          if (Liked == false) Downvotes--;
@@ -163,54 +160,39 @@ namespace RedditSharp.Things
 
       public void Save()
       {
-         var request = WebAgent.CreatePost(SaveUrl);
-         var stream = request.GetRequestStream();
-         WebAgent.WritePostBody(stream, new
+         var data = new
          {
             id = FullName,
             uh = Reddit.User.Modhash
-         });
-         stream.Close();
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
+         };
+         WebAgent.Post(SaveUrl, data);
          Saved = true;
       }
 
       public void Unsave()
       {
-         var request = WebAgent.CreatePost(UnsaveUrl);
-         var stream = request.GetRequestStream();
-         WebAgent.WritePostBody(stream, new
+         var data = new
          {
             id = FullName,
             uh = Reddit.User.Modhash
-         });
-         stream.Close();
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
+         };
+         WebAgent.Post(UnsaveUrl, data);
          Saved = false;
       }
 
       public void ClearVote()
       {
-         var request = WebAgent.CreatePost(VoteUrl);
-         var stream = request.GetRequestStream();
-         WebAgent.WritePostBody(stream, new
+         var data = new
          {
             dir = 0,
             id = FullName,
             uh = Reddit.User.Modhash
-         });
-         stream.Close();
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
+         };
+         WebAgent.Post(VoteUrl, data);
       }
 
       public void Report(ReportType reportType, string otherReason = null)
       {
-         var request = WebAgent.CreatePost(ReportUrl);
-         var stream = request.GetRequestStream();
-
          string reportReason;
          switch (reportType)
          {
@@ -234,25 +216,22 @@ namespace RedditSharp.Things
                break;
          }
 
-         WebAgent.WritePostBody(stream, new
+         var data = new
          {
             api_type = "json",
             reason = reportReason,
             other_reason = otherReason ?? "",
             thing_id = FullName,
             uh = Reddit.User.Modhash
-         });
-         stream.Close();
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
+         };
+         WebAgent.Post(ReportUrl, data);
       }
 
       public void Distinguish(DistinguishType distinguishType)
       {
          if (Reddit.User == null)
             throw new AuthenticationException("No user logged in.");
-         var request = WebAgent.CreatePost(DistinguishUrl);
-         var stream = request.GetRequestStream();
+
          string how;
          switch (distinguishType)
          {
@@ -269,16 +248,14 @@ namespace RedditSharp.Things
                how = "special";
                break;
          }
-         WebAgent.WritePostBody(stream, new
+         var data = new
          {
             how,
             id = Id,
             uh = Reddit.User.Modhash
-         });
-         stream.Close();
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
-         var json = JObject.Parse(data);
+         };
+
+         var json = WebAgent.Post(DistinguishUrl, data);
          if (json["jquery"].Count(i => i[0].Value<int>() == 11 && i[1].Value<int>() == 12) == 0)
             throw new AuthenticationException("You are not permitted to distinguish this comment.");
       }

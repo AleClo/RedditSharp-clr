@@ -49,16 +49,16 @@ namespace RedditSharp.Things
       private Reddit Reddit { get; set; }
 
       [JsonIgnore]
-      private IWebAgent WebAgent { get; set; }
+      private IAsyncWebAgent WebAgent { get; set; }
 
-      public ModAction Init(Reddit reddit, JToken json, IWebAgent webAgent)
+      public ModAction Init(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
       {
          CommonInit(reddit, json, webAgent);
          JsonConvert.PopulateObject(json["data"].ToString(), this, reddit.JsonSerializerSettings);
          return this;
       }
 
-      public async Task<ModAction> InitAsync(Reddit reddit, JToken post, IWebAgent webAgent)
+      public async Task<ModAction> InitAsync(Reddit reddit, JToken post, IAsyncWebAgent webAgent)
       {
          CommonInit(reddit, post, webAgent);
          await
@@ -67,7 +67,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      private void CommonInit(Reddit reddit, JToken json, IWebAgent webAgent)
+      private void CommonInit(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
       {
          base.Init(json);
          Reddit = reddit;

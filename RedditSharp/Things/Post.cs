@@ -28,16 +28,16 @@ namespace RedditSharp.Things
       private Reddit Reddit { get; set; }
 
       [JsonIgnore]
-      private IWebAgent WebAgent { get; set; }
+      private IAsyncWebAgent WebAgent { get; set; }
 
-      public Post Init(Reddit reddit, JToken post, IWebAgent webAgent)
+      public Post Init(Reddit reddit, JToken post, IAsyncWebAgent webAgent)
       {
          CommonInit(reddit, post, webAgent);
          JsonConvert.PopulateObject(post["data"].ToString(), this, reddit.JsonSerializerSettings);
          return this;
       }
 
-      public async Task<Post> InitAsync(Reddit reddit, JToken post, IWebAgent webAgent)
+      public async Task<Post> InitAsync(Reddit reddit, JToken post, IAsyncWebAgent webAgent)
       {
          CommonInit(reddit, post, webAgent);
          await
@@ -46,7 +46,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      private void CommonInit(Reddit reddit, JToken post, IWebAgent webAgent)
+      private void CommonInit(Reddit reddit, JToken post, IAsyncWebAgent webAgent)
       {
          base.Init(reddit, webAgent, post);
          Reddit = reddit;
@@ -140,62 +140,51 @@ namespace RedditSharp.Things
       {
          if (Reddit.User == null)
             throw new AuthenticationException("No user logged in.");
-         var request = WebAgent.CreatePost(CommentUrl);
-         var stream = request.GetRequestStream();
-         WebAgent.WritePostBody(stream, new
+         var data = new
          {
             text = message,
             thing_id = FullName,
             uh = Reddit.User.Modhash,
             api_type = "json"
-         });
-         stream.Close();
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
-         var json = JObject.Parse(data);
+         };
+
+         var json = WebAgent.Post(CommentUrl, data);
+
          if (json["json"]["ratelimit"] != null)
             throw new RateLimitException(TimeSpan.FromSeconds(json["json"]["ratelimit"].ValueOrDefault<double>()));
          return new Comment().Init(Reddit, json["json"]["data"]["things"][0], WebAgent, this);
       }
 
-      private string SimpleAction(string endpoint)
+      private void SimpleAction(string endpoint)
       {
          if (Reddit.User == null)
             throw new AuthenticationException("No user logged in.");
-         var request = WebAgent.CreatePost(endpoint);
-         var stream = request.GetRequestStream();
-         WebAgent.WritePostBody(stream, new
+         var data = new
          {
             id = FullName,
             uh = Reddit.User.Modhash
-         });
-         stream.Close();
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
-         return data;
+         };
+
+         WebAgent.Post(endpoint, data);
       }
 
-      private string SimpleActionToggle(string endpoint, bool value)
+      private void SimpleActionToggle(string endpoint, bool value)
       {
          if (Reddit.User == null)
             throw new AuthenticationException("No user logged in.");
-         var request = WebAgent.CreatePost(endpoint);
-         var stream = request.GetRequestStream();
-         WebAgent.WritePostBody(stream, new
+         var data = new
          {
             id = FullName,
             state = value,
             uh = Reddit.User.Modhash
-         });
-         stream.Close();
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
-         return data;
+         };
+
+         WebAgent.Post(endpoint, data);
       }
 
       public void Approve()
       {
-         var data = SimpleAction(ApproveUrl);
+         SimpleAction(ApproveUrl);
       }
 
       public void Remove()
@@ -210,47 +199,44 @@ namespace RedditSharp.Things
 
       private void RemoveImpl(bool spam)
       {
-         var request = WebAgent.CreatePost(RemoveUrl);
-         var stream = request.GetRequestStream();
-         WebAgent.WritePostBody(stream, new
+         var data = new
          {
             id = FullName,
             spam = spam,
             uh = Reddit.User.Modhash
-         });
-         stream.Close();
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
+         };
+
+         WebAgent.Post(RemoveUrl, data);
       }
 
       public void Del()
       {
-         var data = SimpleAction(DelUrl);
+         SimpleAction(DelUrl);
       }
 
       public void Hide()
       {
-         var data = SimpleAction(HideUrl);
+         SimpleAction(HideUrl);
       }
 
       public void Unhide()
       {
-         var data = SimpleAction(UnhideUrl);
+         SimpleAction(UnhideUrl);
       }
 
       public void MarkNSFW()
       {
-         var data = SimpleAction(MarkNSFWUrl);
+         SimpleAction(MarkNSFWUrl);
       }
 
       public void UnmarkNSFW()
       {
-         var data = SimpleAction(UnmarkNSFWUrl);
+         SimpleAction(UnmarkNSFWUrl);
       }
 
       public void ContestMode(bool state)
       {
-         var data = SimpleActionToggle(ContestModeUrl, state);
+         SimpleActionToggle(ContestModeUrl, state);
       }
 
       #region Obsolete Getter Methods
@@ -274,17 +260,15 @@ namespace RedditSharp.Things
          if (!IsSelfPost)
             throw new Exception("Submission to edit is not a self-post.");
 
-         var request = WebAgent.CreatePost(EditUserTextUrl);
-         WebAgent.WritePostBody(request.GetRequestStream(), new
+         var data = new
          {
             api_type = "json",
             text = newText,
             thing_id = FullName,
             uh = Reddit.User.Modhash
-         });
-         var response = request.GetResponse();
-         var result = WebAgent.GetResponseString(response.GetResponseStream());
-         JToken json = JToken.Parse(result);
+         };
+    
+         JToken json = WebAgent.Post(EditUserTextUrl, data);
          if (json["json"].ToString().Contains("\"errors\": []"))
             SelfText = newText;
          else
@@ -302,8 +286,7 @@ namespace RedditSharp.Things
          if (Reddit.User == null)
             throw new Exception("No user logged in.");
 
-         var request = WebAgent.CreatePost(string.Format(SetFlairUrl, SubredditName));
-         WebAgent.WritePostBody(request.GetRequestStream(), new
+         var data = new
          {
             api_type = "json",
             css_class = flairClass,
@@ -311,15 +294,15 @@ namespace RedditSharp.Things
             name = Reddit.User.Name,
             text = flairText,
             uh = Reddit.User.Modhash
-         });
-         var response = request.GetResponse();
-         var result = WebAgent.GetResponseString(response.GetResponseStream());
-         var json = JToken.Parse(result);
+         };
+
+         var json = WebAgent.Post(SetFlairUrl, data);
          LinkFlairText = flairText;
       }
 
       public List<Comment> ListComments(int? limit = null)
       {
+         //todo: I think i broke this method
          var url = string.Format(GetCommentsUrl, Id);
 
          if (limit.HasValue)
@@ -329,10 +312,7 @@ namespace RedditSharp.Things
             url = string.Format("{0}?{1}", url, query);
          }
 
-         var request = WebAgent.CreateGet(url);
-         var response = request.GetResponse();
-         var data = WebAgent.GetResponseString(response.GetResponseStream());
-         var json = JArray.Parse(data);
+         var json = WebAgent.Get(url);
          var postJson = json.Last()["data"]["children"];
 
          var comments = new List<Comment>();

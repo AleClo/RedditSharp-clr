@@ -1,12 +1,16 @@
 using System;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Authentication;
 using System.Text;
+using System.Web;
 using Newtonsoft.Json.Linq;
 using RedditSharp.Things;
 
 namespace RedditSharp
 {
+   [Obsolete("Not used?", true)]
    public class AuthProvider
    {
       private const string AccessUrl = "https://ssl.reddit.com/api/v1/access_token";
@@ -41,7 +45,7 @@ namespace RedditSharp
          wikiread = 0x40000
       }
 
-      private IWebAgent _webAgent;
+      private IAsyncWebAgent _webAgent;
       private readonly string _redirectUri;
       private readonly string _clientId;
       private readonly string _clientSecret;
@@ -57,7 +61,7 @@ namespace RedditSharp
          _clientId = clientId;
          _clientSecret = clientSecret;
          _redirectUri = redirectUri;
-         _webAgent = new WebAgent();
+         _webAgent = new AsyncWebAgent();
       }
 
       /// <summary>
@@ -66,8 +70,9 @@ namespace RedditSharp
       /// <param name="clientId">Granted by reddit as part of app.</param>
       /// <param name="clientSecret">Granted by reddit as part of app.</param>
       /// <param name="redirectUri">Selected as part of app. Reddit will send users back here.</param>
-      /// <param name="agent">Implementation of IWebAgent to use to make requests.</param>
-      public AuthProvider(string clientId, string clientSecret, string redirectUri, IWebAgent agent)
+      /// <param name="agent">Implementation of 
+      ///  to use to make requests.</param>
+      public AuthProvider(string clientId, string clientSecret, string redirectUri, IAsyncWebAgent agent)
       {
          _clientId = clientId;
          _clientSecret = clientSecret;
@@ -102,33 +107,32 @@ namespace RedditSharp
             ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, ssl) => true;
          _webAgent.Cookies = new CookieContainer();
 
-         var request = _webAgent.CreatePost(AccessUrl);
+         var request = new HttpRequestMessage();
+         request.Method = HttpMethod.Post;
+         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(
+                                               Encoding.Default.GetBytes(_clientId + ":" + _clientSecret)));
 
-         request.Headers["Authorization"] = "Basic " +
-                                            Convert.ToBase64String(
-                                               Encoding.Default.GetBytes(_clientId + ":" + _clientSecret));
-         var stream = request.GetRequestStream();
-
+         JToken json;
          if (isRefresh)
          {
-            _webAgent.WritePostBody(stream, new
-            {
-               grant_type = "refresh_token",
-               refresh_token = code
-            });
+            request.Content = new StringContent($"grant_type=refresh_token&refresh_token{code}");
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-url-encoded");
+            json = _webAgent.ExecuteRequest(request);
          }
          else
          {
-            _webAgent.WritePostBody(stream, new
+            var data = new
             {
                grant_type = "authorization_code",
                code,
                redirect_uri = _redirectUri
-            });
+            };
+
+            request.Content = new StringContent($"grant_type=authorization_code&refresh_token{code}&redirect_uri={HttpUtility.UrlEncode(_redirectUri)}");
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-url-encoded");
+            json = _webAgent.ExecuteRequest(request);
          }
 
-         stream.Close();
-         var json = _webAgent.ExecuteRequest(request);
          if (json["access_token"] != null)
          {
             if (json["refresh_token"] != null)
@@ -151,22 +155,24 @@ namespace RedditSharp
             ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, ssl) => true;
          _webAgent.Cookies = new CookieContainer();
 
-         var request = _webAgent.CreatePost(AccessUrl);
+         var request = new HttpRequestMessage(HttpMethod.Post, AccessUrl);
+         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Convert.ToBase64String(
+                                               Encoding.Default.GetBytes(_clientId + ":" + _clientSecret)));
 
-         request.Headers["Authorization"] = "Basic " +
-                                            Convert.ToBase64String(
-                                               Encoding.Default.GetBytes(_clientId + ":" + _clientSecret));
-         var stream = request.GetRequestStream();
 
-         _webAgent.WritePostBody(stream, new
+         var data = new
          {
             grant_type = "password",
             username,
             password,
             redirect_uri = _redirectUri
-         });
+         };
 
-         stream.Close();
+         request.Content = new StringContent(
+            $"grant_type=password&{HttpUtility.UrlEncode(username)}&{HttpUtility.UrlEncode(password)}&redirect_uri={_redirectUri}");
+         request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-url-encoded");
+
+
          var json = _webAgent.ExecuteRequest(request);
          if (json["access_token"] != null)
          {
@@ -210,7 +216,7 @@ namespace RedditSharp
       {
          var request = _webAgent.CreateGet(OauthGetMeUrl);
          request.Headers["Authorization"] = String.Format("bearer {0}", accessToken);
-         var response = (HttpWebResponse) request.GetResponse();
+         var response = (HttpWebResponse)request.GetResponse();
          var result = _webAgent.GetResponseString(response.GetResponseStream());
          var thingjson = "{\"kind\": \"t2\", \"data\": " + result + "}";
          var json = JObject.Parse(thingjson);

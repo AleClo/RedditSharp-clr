@@ -50,7 +50,7 @@ namespace RedditSharp.Things
       private Reddit Reddit { get; set; }
 
       [JsonIgnore]
-      private IWebAgent WebAgent { get; set; }
+      private IAsyncWebAgent WebAgent { get; set; }
 
       [JsonIgnore]
       public Wiki Wiki { get; private set; }
@@ -212,11 +212,8 @@ namespace RedditSharp.Things
                throw new AuthenticationException("No user logged in.");
             try
             {
-               var request = WebAgent.CreateGet(string.Format(GetSettingsUrl, Name));
-               var response = request.GetResponse();
-               var data = WebAgent.GetResponseString(response.GetResponseStream());
-               var json = JObject.Parse(data);
-               return new SubredditSettings(this, Reddit, json, WebAgent);
+               var json = WebAgent.Get(string.Format(GetSettingsUrl, Name));
+               return new SubredditSettings(this, Reddit, (JObject)json, WebAgent);
             }
             catch // TODO: More specific catch
             {
@@ -308,7 +305,7 @@ namespace RedditSharp.Things
          get { return new Listing<Contributor>(Reddit, string.Format(ContributorsUrl, Name), WebAgent); }
       }
 
-      public Subreddit Init(Reddit reddit, JToken json, IWebAgent webAgent)
+      public Subreddit Init(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
       {
          CommonInit(reddit, json, webAgent);
          JsonConvert.PopulateObject(json["data"].ToString(), this, reddit.JsonSerializerSettings);
@@ -317,7 +314,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      public async Task<Subreddit> InitAsync(Reddit reddit, JToken json, IWebAgent webAgent)
+      public async Task<Subreddit> InitAsync(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
       {
          CommonInit(reddit, json, webAgent);
          await
@@ -338,7 +335,7 @@ namespace RedditSharp.Things
          Name = Name.TrimEnd('/');
       }
 
-      private void CommonInit(Reddit reddit, JToken json, IWebAgent webAgent)
+      private void CommonInit(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
       {
          base.Init(json);
          Reddit = reddit;

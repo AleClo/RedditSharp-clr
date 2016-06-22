@@ -30,7 +30,7 @@ namespace RedditSharp
       /// </summary>
       internal const int DefaultListingPerRequest = 25;
 
-      private IWebAgent WebAgent { get; set; }
+      private IAsyncWebAgent WebAgent { get; set; }
       private Reddit Reddit { get; set; }
       private string Url { get; set; }
 
@@ -40,7 +40,7 @@ namespace RedditSharp
       /// <param name="reddit"></param>
       /// <param name="url"></param>
       /// <param name="webAgent"></param>
-      internal Listing(Reddit reddit, string url, IWebAgent webAgent)
+      internal Listing(Reddit reddit, string url, IAsyncWebAgent webAgent)
       {
          WebAgent = webAgent;
          Reddit = reddit;
@@ -187,10 +187,7 @@ namespace RedditSharp
                url += (url.Contains("?") ? "&" : "?") + "count=" + Count;
             }
 
-            var request = Listing.WebAgent.CreateGet(url);
-            var response = request.GetResponse();
-            var data = Listing.WebAgent.GetResponseString(response.GetResponseStream());
-            var json = JToken.Parse(data);
+            var json = Listing.WebAgent.Get(url);
             if (json["kind"].ValueOrDefault<string>() != "Listing")
                throw new FormatException("Reddit responded with an object that is not a listing.");
             Parse(json);
