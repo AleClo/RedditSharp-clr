@@ -312,8 +312,9 @@ namespace RedditSharp.Things
             url = string.Format("{0}?{1}", url, query);
          }
 
-         var json = WebAgent.Get(url);
-         var postJson = json.Last()["data"]["children"];
+         var json = JArray.FromObject(WebAgent.Get(url));
+
+         var postJson = json[1]["data"]["children"];
 
          var comments = new List<Comment>();
          foreach (var comment in postJson)
