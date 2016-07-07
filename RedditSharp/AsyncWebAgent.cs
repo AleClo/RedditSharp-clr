@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -7,15 +8,17 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using System.Web.Configuration;
 using Newtonsoft.Json.Linq;
 
 namespace RedditSharp
 {
-   public class AsyncWebAgent : WebAgent, IAsyncWebAgent, IDisposable
+   public class AsyncWebAgent : IAsyncWebAgent, IDisposable
    {
       private HttpClient client;
       private HttpClientHandler handler;
@@ -29,7 +32,7 @@ namespace RedditSharp
          set
          {
             client.DefaultRequestHeaders.Authorization = null;
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",value);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", value);
          }
       }
 
@@ -39,6 +42,9 @@ namespace RedditSharp
       public string Protocol => "https";
       public RateLimitMode RateLimit { get; set; }
       public string RootDomain { get; set; }
+
+      private int[] throttleValues = new int[3];
+      private DateTime lastRequest;
 
       private string userAgent;
       public string UserAgent
@@ -68,9 +74,12 @@ namespace RedditSharp
          }
       }
 
+      private ApiThrottler throttle;
+
 
       public AsyncWebAgent()
       {
+         throttle = new ApiThrottler();
          client = new HttpClient();
          Cookies = new CookieContainer();
          UserAgent = "";
@@ -82,7 +91,6 @@ namespace RedditSharp
          client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
          client.DefaultRequestHeaders.UserAgent.ParseAdd($"{UserAgent} - with RedditSharp by sircmpwn - mods by pimanac/1.0");
 
-        
       }
 
       public AsyncWebAgent(string oauthToken) : this()
@@ -90,10 +98,6 @@ namespace RedditSharp
          if (!String.IsNullOrEmpty(AccessToken))
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
       }
-
-
-
-
 
       ~AsyncWebAgent()
       {
@@ -142,9 +146,18 @@ namespace RedditSharp
 
       public JToken ExecuteRequest(HttpRequestMessage request)
       {
+         // hack for the comment url
+         var url = request.RequestUri.OriginalString;
+         if (!request.RequestUri.IsAbsoluteUri)
+            request.RequestUri = BuildUri(url);
+
+
+         throttle.DoThrottle();
+
          var response = client.SendAsync(request).Result;
          if (response.IsSuccessStatusCode)
          {
+            GetThrottleHeaders(response);
             var strJson = response.Content.ReadAsStringAsync().Result;
             return GetJson(strJson);
          }
@@ -157,9 +170,20 @@ namespace RedditSharp
 
       public async Task<JToken> ExecuteRequestAsync(HttpRequestMessage request)
       {
+         // hack for the comment url
+         var url = request.RequestUri.OriginalString;
+         if (request.RequestUri.Scheme != Uri.UriSchemeHttp && request.RequestUri.Scheme != Uri.UriSchemeHttps)
+            request.RequestUri = BuildUri(url);
+
+         lock (throttle)
+         {
+            throttle.DoThrottle();
+         }
+
          var response = await client.SendAsync(request);
          if (response.IsSuccessStatusCode)
          {
+            GetThrottleHeaders(response);
             var strJson = await response.Content.ReadAsStringAsync();
             return GetJson(strJson);
          }
@@ -167,6 +191,31 @@ namespace RedditSharp
          {
             //todo: sane exception handling
             throw new Exception("There was a problem");
+         }
+      }
+
+      //todo: this is going ot give me threading problems methinks
+      private void GetThrottleHeaders(HttpResponseMessage response)
+      {
+         /*
+          * Clients connecting via OAuth2 may make up to 60 requests per minute. Monitor the following response headers to ensure that you're not exceeding the limits:
+            X-Ratelimit-Used: Approximate number of requests used in this period
+            X-Ratelimit-Remaining: Approximate number of requests left to use
+            X-Ratelimit-Reset: Approximate number of seconds to end of period
+          */
+
+         try
+         {
+            throttle.XRateLimitUsed = Int32.Parse(response.Headers.GetValues("x-ratelimit-used").FirstOrDefault());
+            throttle.XRemaining = (int)Decimal.Parse(response.Headers.GetValues("x-ratelimit-remaining").FirstOrDefault());
+            throttle.XReset = (int)Decimal.Parse(response.Headers.GetValues("x-ratelimit-reset").FirstOrDefault());
+
+            System.Diagnostics.Debug.WriteLine($"XUsed: {throttle.XRateLimitUsed} XRemain: {throttle.XRemaining} XReset {throttle.XReset}");
+
+         }
+         catch (Exception ex)
+         {
+            // dont care
          }
       }
 
@@ -205,6 +254,14 @@ namespace RedditSharp
          if (!string.IsNullOrEmpty(result))
          {
             json = JToken.Parse(result);
+
+            if (json is JArray)
+               return json as JArray;
+
+            else
+            {
+               json = json;
+            }
             try
             {
                if (json["json"] != null)
@@ -227,8 +284,9 @@ namespace RedditSharp
                   }
                }
             }
-            catch
+            catch (Exception ex)
             {
+               System.Diagnostics.Debug.WriteLine(ex.Message);
             }
          }
          else
@@ -244,7 +302,7 @@ namespace RedditSharp
          return json;
       }
 
-      private Uri BuildUri(string url)
+      public Uri BuildUri(string url)
       {
          Uri uri;
          if (!Uri.TryCreate(url, UriKind.Absolute, out uri))
@@ -256,54 +314,56 @@ namespace RedditSharp
          return uri;
       }
 
-      
-      [MethodImpl(MethodImplOptions.Synchronized)]
-   /*   protected virtual void EnforceRateLimit()
-      {
-         switch (RateLimit)
-         {
-            case WebAgent.RateLimitMode.Pace:
-               while ((DateTime.UtcNow - _lastRequest).TotalSeconds < 2) // Rate limiting
-                  Thread.Sleep(250);
-               _lastRequest = DateTime.UtcNow;
-               break;
-            case WebAgent.RateLimitMode.SmallBurst:
-               if (_requestsThisBurst == 0 || (DateTime.UtcNow - _burstStart).TotalSeconds >= 10)
-               //this is first request OR the burst expired
-               {
-                  _burstStart = DateTime.UtcNow;
-                  _requestsThisBurst = 0;
-               }
-               if (_requestsThisBurst >= 5) //limit has been reached
-               {
-                  while ((DateTime.UtcNow - _burstStart).TotalSeconds < 10)
-                     Thread.Sleep(250);
-                  _burstStart = DateTime.UtcNow;
-                  _requestsThisBurst = 0;
-               }
-               _lastRequest = DateTime.UtcNow;
-               _requestsThisBurst++;
-               break;
-            case WebAgent.RateLimitMode.Burst:
-               if (_requestsThisBurst == 0 || (DateTime.UtcNow - _burstStart).TotalSeconds >= 60)
-               //this is first request OR the burst expired
-               {
-                  _burstStart = DateTime.UtcNow;
-                  _requestsThisBurst = 0;
-               }
-               if (_requestsThisBurst >= 30) //limit has been reached
-               {
-                  while ((DateTime.UtcNow - _burstStart).TotalSeconds < 60)
-                     Thread.Sleep(250);
-                  _burstStart = DateTime.UtcNow;
-                  _requestsThisBurst = 0;
-               }
-               _lastRequest = DateTime.UtcNow;
-               _requestsThisBurst++;
-               break;
-         }
-      }
-      */
+      /*   
+        [MethodImpl(MethodImplOptions.Synchronized)]
+       protected virtual void EnforceRateLimit()
+        {
+           switch (RateLimit)
+           {
+              case WebAgent.RateLimitMode.Pace:
+                 while ((DateTime.UtcNow - _lastRequest).TotalSeconds < 2) // Rate limiting
+                    Thread.Sleep(250);
+                 _lastRequest = DateTime.UtcNow;
+                 break;
+              case WebAgent.RateLimitMode.SmallBurst:
+                 if (_requestsThisBurst == 0 || (DateTime.UtcNow - _burstStart).TotalSeconds >= 10)
+                 //this is first request OR the burst expired
+                 {
+                    _burstStart = DateTime.UtcNow;
+                    _requestsThisBurst = 0;
+                 }
+                 if (_requestsThisBurst >= 5) //limit has been reached
+                 {
+                    while ((DateTime.UtcNow - _burstStart).TotalSeconds < 10)
+                       Thread.Sleep(250);
+                    _burstStart = DateTime.UtcNow;
+                    _requestsThisBurst = 0;
+                 }
+                 _lastRequest = DateTime.UtcNow;
+                 _requestsThisBurst++;
+                 break;
+              case WebAgent.RateLimitMode.Burst:
+                 if (_requestsThisBurst == 0 || (DateTime.UtcNow - _burstStart).TotalSeconds >= 60)
+                 //this is first request OR the burst expired
+                 {
+                    _burstStart = DateTime.UtcNow;
+                    _requestsThisBurst = 0;
+                 }
+                 if (_requestsThisBurst >= 30) //limit has been reached
+                 {
+                    while ((DateTime.UtcNow - _burstStart).TotalSeconds < 60)
+                       Thread.Sleep(250);
+                    _burstStart = DateTime.UtcNow;
+                    _requestsThisBurst = 0;
+                 }
+                 _lastRequest = DateTime.UtcNow;
+                 _requestsThisBurst++;
+                 break;
+           }
+        }
+        */
+
+
       // IDisposable
       public void Dispose()
       {
@@ -318,5 +378,149 @@ namespace RedditSharp
                client.Dispose();
          }
       }
+   }
+
+   /// <summary>
+   /// This class conforms to the reddit api.
+   /// </summary>
+   sealed class ApiThrottler : IDisposable
+   {
+      /// <summary>
+      /// It is strongly advised that you leave this set to Burst or Pace. Reddit bans excessive
+      /// requests with extreme predjudice.
+      /// </summary>
+      public RateLimitMode RateLimit { get; set; }
+
+      /// <summary>
+      /// The method by which the WebAgent will limit request rate
+      /// </summary>
+      public enum RateLimitMode
+      {
+         /// <summary>
+         /// Limits requests to one per second
+         /// </summary>
+         Pace,
+
+         /// <summary>
+         /// Restricts requests to five per ten seconds
+         /// </summary>
+         SmallBurst,
+
+         /// <summary>
+         /// Restricts requests to sixty per minute
+         /// </summary>
+         Burst,
+
+         /// <summary>
+         /// Does not restrict request rate. ***NOT RECOMMENDED***
+         /// </summary>
+         None
+      }
+
+
+      public int? XRateLimitUsed;
+      public int? XRemaining;
+      public int? XReset = null;
+      private Timer timer;
+
+      private AutoResetEvent throttle = new AutoResetEvent(false);
+      private int requestsThisPeriod = 0;
+      private int requestsThisBurst = 0;
+
+      private DateTime periodEnd;
+      private DateTime lastRequest;
+
+      public ApiThrottler()
+      {
+         timer = null;
+      }
+
+      [MethodImpl(MethodImplOptions.Synchronized)]
+      public void DoThrottle()
+      {
+         // enforce the standard throttling
+
+         TimeSpan ts;
+         switch (RateLimit)
+         {
+            case RateLimitMode.Pace:
+               ts = DateTime.Now.Subtract(lastRequest);
+               if (ts.Milliseconds < 1000)
+                  Thread.Sleep(ts.Milliseconds);
+               break;
+            case RateLimitMode.SmallBurst:
+               throw new NotImplementedException();
+               break;
+            case RateLimitMode.Burst:
+               throw new NotImplementedException();
+               break;
+            case RateLimitMode.None:
+            default:
+               // do nothing, rely on the reddit api throttle alone
+               break;
+         }
+
+         if (XRateLimitUsed == null || XRemaining == null || XReset == null)
+            // we probably aren't on outh
+            return;
+
+         if (timer == null)
+         {
+            // when is the expected end of the period?  with a little wiggle.
+            periodEnd = DateTime.Now.AddSeconds((double)XReset.Value + 5);
+
+            var ms = (XReset.Value + 5) * 1000;
+
+            // start the timer
+            timer = new Timer((state) =>
+            {
+#if DEBUG
+               System.Diagnostics.Debug.WriteLine("throttle.Set()");
+#endif
+               // reset the period and allow the threads to continue
+               throttle.Set();
+               timer.Dispose();
+               timer = null;
+            }, null, ms, Timeout.Infinite);
+
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine("Started timer for " + ms + " ms");
+            System.Diagnostics.Debug.WriteLine("end time : " + periodEnd.ToString());
+#endif
+         }
+
+         if (XRateLimitUsed > requestsThisPeriod)
+            requestsThisPeriod = XRateLimitUsed.Value;
+
+         // no reason to toe the line
+         if (XRemaining <= 2)
+         {
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine("throttle.WaitOne()");
+#endif
+            if (timer != null)
+               throttle.WaitOne();
+         }
+         requestsThisPeriod++;
+         requestsThisBurst++;
+         lastRequest = DateTime.Now;
+      }
+
+
+      // IDisposable
+      public void Dispose()
+      {
+         Dispose(true);
+      }
+
+      public void Dispose(bool disposing)
+      {
+         if (disposing)
+         {
+            if (timer != null)
+               timer.Dispose();
+         }
+      }
+
    }
 }
