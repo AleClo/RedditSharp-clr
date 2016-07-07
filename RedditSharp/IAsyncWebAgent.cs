@@ -13,7 +13,7 @@ using System.Web.UI.WebControls;
 
 namespace RedditSharp
 {
-   public interface IAsyncWebAgent : IWebAgent
+   public interface IAsyncWebAgent
    {
       CookieContainer Cookies { get; set; }
 
