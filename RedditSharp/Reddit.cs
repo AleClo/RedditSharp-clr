@@ -1,11 +1,16 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Authentication;
 using RedditSharp.Things;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace RedditSharp
 {
@@ -17,6 +22,7 @@ namespace RedditSharp
       #region Constant Urls
 
       private const string SslLoginUrl = "https://ssl.reddit.com/api/login";
+      private const string OAuthTokenUrl = "https://www.reddit.com/api/v1/access_token";
       private const string LoginUrl = "/api/login/username";
       private const string UserInfoUrl = "/user/{0}/about.json";
       private const string MeUrl = "/api/me.json";
@@ -28,7 +34,7 @@ namespace RedditSharp
       private const string GetCommentUrl = "/r/{0}/comments/{1}/foo/{2}";
       private const string GetPostUrl = "{0}.json";
       private const string DomainUrl = "www.reddit.com";
-      private const string OAuthDomainUrl = "www.reddit.com";
+      private const string OAuthDomainUrl = "oauth.reddit.com";
       private const string SearchUrl = "/search.json?q={0}&restrict_sr=off&sort={1}&t={2}";
       private const string UrlSearchPattern = "url:'{0}'";
       private const string NewSubredditsUrl = "/subreddits/new.json";
@@ -36,6 +42,7 @@ namespace RedditSharp
       private const string GoldSubredditsUrl = "/subreddits/gold.json";
       private const string DefaultSubredditsUrl = "/subreddits/default.json";
       private const string SearchSubredditsUrl = "/subreddits/search.json?q={0}";
+
 
       #endregion
 
@@ -139,10 +146,53 @@ namespace RedditSharp
       /// <param name="password">The password of the user to log on to.</param>
       /// <param name="useSsl">Whether to use SSL or not. (default: true)</param>
       /// <returns></returns>
-      public AuthenticatedUser LogIn(string username, string password)
+      public AuthenticatedUser LogIn(string username, string password, string appId, string secret)
       {
          if (Type.GetType("Mono.Runtime") != null)
             ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, ssl) => true;
+
+
+         // get token
+         var request = new HttpRequestMessage(HttpMethod.Post, OAuthTokenUrl);
+         var auth = System.Text.Encoding.UTF8.GetBytes($"{appId}:{secret}");
+         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(auth));
+
+         var content = new StringContent($"grant_type=password&username={HttpUtility.UrlEncode(username)}&password={HttpUtility.UrlEncode(password)}");
+         request.Content = content;
+         request.Content.Headers.ContentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
+
+         var json = WebAgent.ExecuteRequest(request);
+         if (json["error"] != null)
+            throw new AuthenticationException("Incorrect login.",
+               new Exception(json["error"].ToString()
+               )
+               );
+         var token = json["access_token"].ToString();
+         if (String.IsNullOrEmpty(token))
+            throw new AuthenticationException("Couldn't get access token");
+
+         WebAgent.AccessToken = token;
+         InitOrUpdateUser();
+         WebAgent.RootDomain = "oauth.reddit.com";
+         return User;
+      }
+
+      /// <summary>
+      /// Logs in the current Reddit instance using OAuth Implicit grant flow.
+      /// </summary>
+      /// <param name="clientId">The Client ID generated during app registration</param>
+      /// <param name="redirectUri">The password of the user to log on to.</param>
+      /// <param name="
+      /// ">oauth scopes</param>
+      /// <returns></returns>
+      public AuthenticatedUser LogInImplicit(string clientId, string redirectUri, string username, string password, string[] scope)
+      {
+
+         throw new NotImplementedException("not done yet");
+         if (Type.GetType("Mono.Runtime") != null)
+            ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, ssl) => true;
+
+
 
          var data = new
          {
@@ -168,7 +218,7 @@ namespace RedditSharp
       /// <param name="password">The password of the user to log on to.</param>
       /// <param name="useSsl">Whether to use SSL or not. (default: true)</param>
       /// <returns></returns>
-      public async Task<AuthenticatedUser> LogInAsyn(string username, string password)
+      public async Task<AuthenticatedUser> LogInAsync(string username, string password)
       {
          if (Type.GetType("Mono.Runtime") != null)
             ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, ssl) => true;
@@ -180,7 +230,13 @@ namespace RedditSharp
             api_type = "json"
          };
 
-         var json = await WebAgent.PostAsync(SslLoginUrl, data, null);
+         var request = new HttpRequestMessage(HttpMethod.Post, SslLoginUrl);
+         var content = new StringContent(JsonConvert.SerializeObject(data));
+         content.Headers.ContentType = new MediaTypeWithQualityHeaderValue("application/json");
+
+         request.Content = content;
+
+         var json = await WebAgent.ExecuteRequestAsync(request);
          // var json = JObject.Parse(result)["json"];
          if (json["errors"].Count() != 0)
             throw new AuthenticationException("Incorrect login.");
@@ -212,7 +268,8 @@ namespace RedditSharp
       /// </summary>
       public void InitOrUpdateUser()
       {
-         var json = WebAgent.Get(string.IsNullOrEmpty(WebAgent.AccessToken) ? MeUrl : OAuthMeUrl);
+         var request = new HttpRequestMessage(HttpMethod.Get, new Uri("https://" + OAuthDomainUrl + OAuthMeUrl));
+         var json = WebAgent.ExecuteRequest(request);
          User = new AuthenticatedUser().Init(this, json, WebAgent);
       }
 
@@ -259,13 +316,16 @@ namespace RedditSharp
          return new Domain(this, uri, WebAgent);
       }
 
-      public JToken GetToken(Uri uri)
+      public JToken GetToken (Uri uri)
       {
          var url = uri.AbsoluteUri;
          if (url.EndsWith("/"))
             url = url.Remove(url.Length - 1);
 
-         var json = WebAgent.Get(string.Format(GetPostUrl, url));
+         UriBuilder b = new UriBuilder("https", WebAgent.RootDomain);
+         b.Path = uri.PathAndQuery;
+
+         var json = WebAgent.Get(string.Format(GetPostUrl, b.Uri));
 
          return json[0]["data"]["children"].First;
       }
@@ -519,13 +579,13 @@ namespace RedditSharp
       {
          var json = await WebAgent.GetAsync(url);
          var ret = await Thing.ParseAsync(this, json, WebAgent);
-         return (T) ret;
+         return (T)ret;
       }
 
       protected internal T GetThing<T>(string url) where T : Thing
       {
          var json = WebAgent.Get(url);
-         return (T) Thing.Parse(this, json, WebAgent);
+         return (T)Thing.Parse(this, json, WebAgent);
       }
 
       #endregion
