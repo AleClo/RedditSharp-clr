@@ -15,35 +15,25 @@ namespace TestRedditSharp
          var authenticated = false;
          while (!authenticated)
          {
-            Console.Write("OAuth? (y/n) [n]: ");
-            var oaChoice = Console.ReadLine();
-            if (!string.IsNullOrEmpty(oaChoice) && oaChoice.ToLower()[0] == 'y')
+            Console.Write("Username: ");
+            var username = Console.ReadLine();
+            Console.Write("Password: ");
+            var password = ReadPassword();
+            Console.Write("App Id  : ");
+            var appId = ReadPassword();
+            Console.Write("Secret  : ");
+            var secret = ReadPassword();
+            try
             {
-               Console.Write("OAuth token: ");
-               var token = Console.ReadLine();
-               reddit = new Reddit(token);
-               reddit.InitOrUpdateUser();
+               Console.WriteLine("Logging in...");
+               reddit = new Reddit();
+               reddit.LogIn(username, password, appId, secret);
                authenticated = reddit.User != null;
-               if (!authenticated)
-                  Console.WriteLine("Invalid token");
             }
-            else
+            catch (AuthenticationException)
             {
-               Console.Write("Username: ");
-               var username = Console.ReadLine();
-               Console.Write("Password: ");
-               var password = ReadPassword();
-               try
-               {
-                  Console.WriteLine("Logging in...");
-                  reddit = new Reddit(username, password);
-                  authenticated = reddit.User != null;
-               }
-               catch (AuthenticationException)
-               {
-                  Console.WriteLine("Incorrect login.");
-                  authenticated = false;
-               }
+               Console.WriteLine("Incorrect login.");
+               authenticated = false;
             }
          }
          /*Console.Write("Create post? (y/n) [n]: ");
@@ -65,14 +55,13 @@ namespace TestRedditSharp
                 foreach (var post in sub.GetTop(FromTime.Week).Take(10))
                     Console.WriteLine("\"{0}\" by {1}", post.Title, post.Author);
             }*/
-         Comment comment = (Comment) reddit.GetThingByFullname("t1_ciif2g7");
-         Post post = (Post) reddit.GetThingByFullname("t3_298g7j");
-         PrivateMessage pm = (PrivateMessage) reddit.GetThingByFullname("t4_20oi3a");
-            // Use your own PM here, as you don't have permission to view this one
-         Console.WriteLine(comment.Body);
-         Console.WriteLine(post.Title);
-         Console.WriteLine(pm.Body);
-         Console.WriteLine(post.Comment("test").FullName);
+         Post post = (Post)reddit.GetThingByFullname("t3_434h6c");
+
+         Console.WriteLine(post.SelfText);
+         Console.WriteLine();
+         Console.WriteLine();
+
+         Console.WriteLine("Press any key to exit");
          Console.ReadKey(true);
       }
 
