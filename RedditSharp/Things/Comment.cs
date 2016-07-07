@@ -143,8 +143,8 @@ namespace RedditSharp.Things
                linkId = this.LinkId.Substring(index + 1);
             }
 
-            return String.Format("{0}://{1}/r/{2}/comments/{3}/_/{4}",
-               RedditSharp.WebAgent.Protocol, RedditSharp.WebAgent.RootDomain,
+            return String.Format("https://{0}/r/{1}/comments/{2}/_/{3}",
+               "www.reddit.com",
                this.Subreddit, this.Parent != null ? this.Parent.Id : linkId, this.Id);
          }
       }
@@ -197,18 +197,18 @@ namespace RedditSharp.Things
 
          if (Reddit.User == null)
             throw new AuthenticationException("No user logged in.");
-         var request = WebAgent.CreatePost(endpoint);
-         var stream = request.GetRequestStream();
+
          var data = new
          {
             id = FullName,
             uh = Reddit.User.Modhash
          };
-         var response = request.GetResponse();
+
          var json = WebAgent.Post(endpoint, data);
          return data.ToString();
       }
 
+      [Obsolete()]
       public void Del()
       {
          var data = SimpleAction(DelUrl);
