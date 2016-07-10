@@ -289,11 +289,6 @@ namespace RedditSharp.Things
          }
       }
 
-      public IEnumerable<TBUserNote> UserNotes
-      {
-         get { return ToolBoxUserNotes.GetUserNotes(WebAgent, Name); }
-      }
-
       public Listing<Contributor> Contributors
       {
          get { return new Listing<Contributor>(Reddit, string.Format(ContributorsUrl, Name), WebAgent); }
