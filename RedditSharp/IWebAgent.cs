@@ -1,36 +1,53 @@
-using System;
-using System.IO;
 using System.Net;
+using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+
+using System.Net.Http;
 
 namespace RedditSharp
 {
-   public interface IWebAgent
+   public interface IWegAgent
    {
-      
       CookieContainer Cookies { get; set; }
+
       string AuthCookie { get; set; }
       string AccessToken { get; set; }
+      string UserAgent { get; set; }
+      string RootDomain { get; set; }
 
-      [Obsolete("This is going away",false)]
-      HttpWebRequest CreateRequest(string url, string method);
+      RateLimitMode RateLimit { get; set; }
 
-      [Obsolete("This is going away", false)]
-      HttpWebRequest CreateGet(string url);
 
-      [Obsolete("This is going away", false)]
-      HttpWebRequest CreatePost(string url);
+      JToken Post(string url, object data = null, params string[] additionalFields);
+      Task<JToken> PostAsync(string url, object data, params string[] additionalFields);
 
-      [Obsolete("This is going away", false)]
-      string GetResponseString(Stream stream);
+      JToken Get(string url);
+      Task<JToken> GetAsync(string url);
 
-      [Obsolete("This is going away", false)]
-      void WritePostBody(Stream stream, object data, params string[] additionalFields);
+      JToken ExecuteRequest(HttpRequestMessage request);
+      Task<JToken> ExecuteRequestAsync(HttpRequestMessage request);
+   }
 
-      [Obsolete("This is going away", false)]
-      JToken CreateAndExecuteRequest(string url);
+   public enum RateLimitMode
+   {
+      /// <summary>
+      /// Limits requests to one every two seconds
+      /// </summary>
+      Pace,
 
-      [Obsolete("This is going away", false)]
-      JToken ExecuteRequest(HttpWebRequest request);
+      /// <summary>
+      /// Restricts requests to five per ten seconds
+      /// </summary>
+      SmallBurst,
+
+      /// <summary>
+      /// Restricts requests to thirty per minute
+      /// </summary>
+      Burst,
+
+      /// <summary>
+      /// Does not restrict request rate. ***NOT RECOMMENDED***
+      /// </summary>
+      None
    }
 }

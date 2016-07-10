@@ -49,7 +49,7 @@ namespace RedditSharp.Things
       private Reddit Reddit { get; set; }
 
       [JsonIgnore]
-      private IAsyncWebAgent WebAgent { get; set; }
+      private IWegAgent WebAgent { get; set; }
 
       [JsonIgnore]
       public Wiki Wiki { get; private set; }
@@ -294,7 +294,7 @@ namespace RedditSharp.Things
          get { return new Listing<Contributor>(Reddit, string.Format(ContributorsUrl, Name), WebAgent); }
       }
 
-      public Subreddit Init(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
+      public Subreddit Init(Reddit reddit, JToken json, IWegAgent webAgent)
       {
          CommonInit(reddit, json, webAgent);
          JsonConvert.PopulateObject(json["data"].ToString(), this, reddit.JsonSerializerSettings);
@@ -303,7 +303,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      public async Task<Subreddit> InitAsync(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
+      public async Task<Subreddit> InitAsync(Reddit reddit, JToken json, IWegAgent webAgent)
       {
          CommonInit(reddit, json, webAgent);
          await
@@ -324,7 +324,7 @@ namespace RedditSharp.Things
          Name = Name.TrimEnd('/');
       }
 
-      private void CommonInit(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
+      private void CommonInit(Reddit reddit, JToken json, IWegAgent webAgent)
       {
          base.Init(json);
          Reddit = reddit;

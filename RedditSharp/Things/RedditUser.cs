@@ -16,7 +16,7 @@ namespace RedditSharp.Things
 
       private const int MAX_LIMIT = 100;
 
-      public RedditUser Init(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
+      public RedditUser Init(Reddit reddit, JToken json, IWegAgent webAgent)
       {
          CommonInit(reddit, json, webAgent);
          JsonConvert.PopulateObject(json["name"] == null ? json["data"].ToString() : json.ToString(), this,
@@ -24,7 +24,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      public async Task<RedditUser> InitAsync(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
+      public async Task<RedditUser> InitAsync(Reddit reddit, JToken json, IWegAgent webAgent)
       {
          CommonInit(reddit, json, webAgent);
          await
@@ -34,7 +34,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      private void CommonInit(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
+      private void CommonInit(Reddit reddit, JToken json, IWegAgent webAgent)
       {
          base.Init(json);
          Reddit = reddit;
@@ -45,7 +45,7 @@ namespace RedditSharp.Things
       protected Reddit Reddit { get; set; }
 
       [JsonIgnore]
-      protected IAsyncWebAgent WebAgent { get; set; }
+      protected IWegAgent WebAgent { get; set; }
 
       [JsonProperty("name")]
       public string Name { get; set; }

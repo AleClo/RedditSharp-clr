@@ -21,7 +21,7 @@ namespace RedditSharp
       {
       }
 
-      protected internal WikiPageSettings(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
+      protected internal WikiPageSettings(Reddit reddit, JToken json, IWegAgent webAgent)
       {
          var editors = json["editors"].ToArray();
          Editors = editors.Select(x => new RedditUser().Init(reddit, x, webAgent));

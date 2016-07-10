@@ -30,7 +30,7 @@ namespace RedditSharp
       /// </summary>
       internal const int DefaultListingPerRequest = 25;
 
-      private IAsyncWebAgent WebAgent { get; set; }
+      private IWegAgent WebAgent { get; set; }
       private Reddit Reddit { get; set; }
       private string Url { get; set; }
 
@@ -40,7 +40,7 @@ namespace RedditSharp
       /// <param name="reddit"></param>
       /// <param name="url"></param>
       /// <param name="webAgent"></param>
-      internal Listing(Reddit reddit, string url, IAsyncWebAgent webAgent)
+      internal Listing(Reddit reddit, string url, IWegAgent webAgent)
       {
          WebAgent = webAgent;
          Reddit = reddit;

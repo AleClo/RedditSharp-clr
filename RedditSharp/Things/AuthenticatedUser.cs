@@ -16,7 +16,7 @@ namespace RedditSharp.Things
       private const string InboxUrl = "/message/inbox.json";
       private const string SentUrl = "/message/sent.json";
 
-      public new AuthenticatedUser Init(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
+      public new AuthenticatedUser Init(Reddit reddit, JToken json, IWegAgent webAgent)
       {
          CommonInit(reddit, json, webAgent);
          JsonConvert.PopulateObject(json["name"] == null ? json["data"].ToString() : json.ToString(), this,
@@ -24,7 +24,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      public new async Task<AuthenticatedUser> InitAsync(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
+      public new async Task<AuthenticatedUser> InitAsync(Reddit reddit, JToken json, IWegAgent webAgent)
       {
          CommonInit(reddit, json, webAgent);
          await
@@ -34,7 +34,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      private void CommonInit(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
+      private void CommonInit(Reddit reddit, JToken json, IWegAgent webAgent)
       {
          base.Init(reddit, json, webAgent);
       }

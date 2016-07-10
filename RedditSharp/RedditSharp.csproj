@@ -45,8 +45,6 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AsyncWebAgent.cs" />
-    <Compile Include="IAsyncWebAgent.cs" />
     <Compile Include="ModActionType.cs" />
     <Compile Include="Things\Contributor.cs" />
     <Compile Include="Things\ModAction.cs" />

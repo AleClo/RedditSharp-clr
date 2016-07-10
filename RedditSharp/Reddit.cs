@@ -46,7 +46,7 @@ namespace RedditSharp
 #endregion
 
 
-      internal IAsyncWebAgent WebAgent { get; set; }
+      internal IWegAgent WebAgent { get; set; }
 
       /// <summary>
       /// Captcha solver instance to use when solving captchas.
@@ -83,7 +83,7 @@ namespace RedditSharp
 
       public Reddit()
       {
-         WebAgent = new AsyncWebAgent();
+         WebAgent = new WegAgent();
          JsonSerializerSettings = new JsonSerializerSettings
          {
             CheckAdditionalContent = false,
@@ -110,7 +110,7 @@ namespace RedditSharp
       /// Creates a Reddit instance with the given WebAgent implementation
       /// </summary>
       /// <param name="agent">Implementation of IWebAgent interface. Used to generate requests.</param>
-      public Reddit(IAsyncWebAgent agent)
+      public Reddit(IWegAgent agent)
       {
          WebAgent = agent;
          JsonSerializerSettings = new JsonSerializerSettings
@@ -126,7 +126,7 @@ namespace RedditSharp
       /// </summary>
       /// <param name="agent">Implementation of IWebAgent interface. Used to generate requests.</param>
       /// <param name="initUser">Whether to run InitOrUpdateUser, requires <paramref name="agent"/> to have credentials first.</param>
-      public Reddit(IAsyncWebAgent agent, bool initUser)
+      public Reddit(IWegAgent agent, bool initUser)
       {
          WebAgent = agent;
          JsonSerializerSettings = new JsonSerializerSettings

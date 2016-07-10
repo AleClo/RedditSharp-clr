@@ -46,7 +46,7 @@
 //         wikiread = 0x40000
 //      }
          
-//      private IAsyncWebAgent _webAgent;
+//      private IWegAgent _webAgent;
 //      private readonly string _redirectUri;
 //      private readonly string _clientId;
 //      private readonly string _clientSecret;
@@ -66,7 +66,7 @@
 //         _clientId = clientId;
 //         _clientSecret = clientSecret;
 //         _redirectUri = redirectUri;
-//         _webAgent = new AsyncWebAgent();
+//         _webAgent = new WegAgent();
 //      }
 
 //      /// <summary>
@@ -77,7 +77,7 @@
 //      /// <param name="redirectUri">Selected as part of app. Reddit will send users back here.</param>
 //      /// <param name="agent">Implementation of 
 //      ///  to use to make requests.</param>
-//      public AuthProvider(string clientId, string clientSecret, string redirectUri, IAsyncWebAgent agent)
+//      public AuthProvider(string clientId, string clientSecret, string redirectUri, IWegAgent agent)
 //      {
 //         _clientId = clientId;
 //         _clientSecret = clientSecret;

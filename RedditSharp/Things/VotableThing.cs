@@ -41,19 +41,19 @@ namespace RedditSharp.Things
       private const string DistinguishUrl = "/api/distinguish";
 
       [JsonIgnore]
-      private IAsyncWebAgent WebAgent { get; set; }
+      private IWegAgent WebAgent { get; set; }
 
       [JsonIgnore]
       private Reddit Reddit { get; set; }
 
-      protected VotableThing Init(Reddit reddit, IAsyncWebAgent webAgent, JToken json)
+      protected VotableThing Init(Reddit reddit, IWegAgent webAgent, JToken json)
       {
          CommonInit(reddit, webAgent, json);
          JsonConvert.PopulateObject(json["data"].ToString(), this, Reddit.JsonSerializerSettings);
          return this;
       }
 
-      protected async Task<VotableThing> InitAsync(Reddit reddit, IAsyncWebAgent webAgent, JToken json)
+      protected async Task<VotableThing> InitAsync(Reddit reddit, IWegAgent webAgent, JToken json)
       {
          CommonInit(reddit, webAgent, json);
          await
@@ -62,7 +62,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      private void CommonInit(Reddit reddit, IAsyncWebAgent webAgent, JToken json)
+      private void CommonInit(Reddit reddit, IWegAgent webAgent, JToken json)
       {
          base.Init(reddit, json);
          Reddit = reddit;

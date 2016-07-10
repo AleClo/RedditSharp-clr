@@ -6,7 +6,7 @@ namespace RedditSharp.Things
 {
    public class Thing
    {
-      public static Thing Parse(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
+      public static Thing Parse(Reddit reddit, JToken json, IWegAgent webAgent)
       {
          var kind = json["kind"].ValueOrDefault<string>();
          switch (kind)
@@ -29,7 +29,7 @@ namespace RedditSharp.Things
       }
 
       // if we can't determine the type of thing by "kind", try by type
-      public static Thing Parse<T>(Reddit reddit, JToken json, IAsyncWebAgent webAgent) where T : Thing
+      public static Thing Parse<T>(Reddit reddit, JToken json, IWegAgent webAgent) where T : Thing
       {
          Thing result = Parse(reddit, json, webAgent);
          if (result == null)
@@ -83,7 +83,7 @@ namespace RedditSharp.Things
          get { return DateTime.Now - FetchedAt; }
       }
 
-      public static async Task<Thing> ParseAsync(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
+      public static async Task<Thing> ParseAsync(Reddit reddit, JToken json, IWegAgent webAgent)
       {
          var kind = json["kind"].ValueOrDefault<string>();
          switch (kind)
@@ -106,7 +106,7 @@ namespace RedditSharp.Things
       }
 
       // if we can't determine the type of thing by "kind", try by type
-      public static async Task<Thing> ParseAsync<T>(Reddit reddit, JToken json, IAsyncWebAgent webAgent) where T : Thing
+      public static async Task<Thing> ParseAsync<T>(Reddit reddit, JToken json, IWegAgent webAgent) where T : Thing
       {
          Thing result = await ParseAsync(reddit, json, webAgent);
          if (result == null)

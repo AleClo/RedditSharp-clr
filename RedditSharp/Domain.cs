@@ -15,7 +15,7 @@ namespace RedditSharp
       private Reddit Reddit { get; set; }
 
       [JsonIgnore]
-      private IAsyncWebAgent WebAgent { get; set; }
+      private IWegAgent WebAgent { get; set; }
 
       [JsonIgnore]
       public string Name { get; set; }
@@ -35,7 +35,7 @@ namespace RedditSharp
          get { return new Listing<Post>(Reddit, string.Format(DomainHotUrl, Name), WebAgent); }
       }
 
-      protected internal Domain(Reddit reddit, Uri domain, IAsyncWebAgent webAgent)
+      protected internal Domain(Reddit reddit, Uri domain, IWegAgent webAgent)
       {
          Reddit = reddit;
          WebAgent = webAgent;

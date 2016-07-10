@@ -11,12 +11,12 @@ namespace RedditSharp
       private const string DeleteHeaderImageUrl = "/api/delete_sr_header";
 
       private Reddit Reddit { get; set; }
-      private IAsyncWebAgent WebAgent { get; set; }
+      private IWegAgent WebAgent { get; set; }
 
       [JsonIgnore]
       public Subreddit Subreddit { get; set; }
 
-      public SubredditSettings(Reddit reddit, Subreddit subreddit, IAsyncWebAgent webAgent)
+      public SubredditSettings(Reddit reddit, Subreddit subreddit, IWegAgent webAgent)
       {
          Subreddit = subreddit;
          Reddit = reddit;
@@ -41,7 +41,7 @@ namespace RedditSharp
          SpamFilter = new SpamFilterSettings();
       }
 
-      public SubredditSettings(Subreddit subreddit, Reddit reddit, JObject json, IAsyncWebAgent webAgent)
+      public SubredditSettings(Subreddit subreddit, Reddit reddit, JObject json, IWegAgent webAgent)
          : this(reddit, subreddit, webAgent)
       {
          var data = json["data"];

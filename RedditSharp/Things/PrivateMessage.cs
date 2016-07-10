@@ -14,7 +14,7 @@ namespace RedditSharp.Things
       private const string CommentUrl = "/api/comment";
 
       private Reddit Reddit { get; set; }
-      private IAsyncWebAgent WebAgent { get; set; }
+      private IWegAgent WebAgent { get; set; }
 
       [JsonProperty("body")]
       public string Body { get; set; }
@@ -85,14 +85,14 @@ namespace RedditSharp.Things
          }
       }
 
-      public PrivateMessage Init(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
+      public PrivateMessage Init(Reddit reddit, JToken json, IWegAgent webAgent)
       {
          CommonInit(reddit, json, webAgent);
          JsonConvert.PopulateObject(json["data"].ToString(), this, reddit.JsonSerializerSettings);
          return this;
       }
 
-      public async Task<PrivateMessage> InitAsync(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
+      public async Task<PrivateMessage> InitAsync(Reddit reddit, JToken json, IWegAgent webAgent)
       {
          CommonInit(reddit, json, webAgent);
          await
@@ -101,7 +101,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      private void CommonInit(Reddit reddit, JToken json, IAsyncWebAgent webAgent)
+      private void CommonInit(Reddit reddit, JToken json, IWegAgent webAgent)
       {
          base.Init(json);
          Reddit = reddit;

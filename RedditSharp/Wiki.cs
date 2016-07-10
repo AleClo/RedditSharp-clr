@@ -9,7 +9,7 @@ namespace RedditSharp
    {
       private Reddit Reddit { get; set; }
       private Subreddit Subreddit { get; set; }
-      private IAsyncWebAgent WebAgent { get; set; }
+      private IWegAgent WebAgent { get; set; }
 
       private const string GetWikiPageUrl = "/r/{0}/wiki/{1}.json?v={2}";
       private const string GetWikiPagesUrl = "/r/{0}/wiki/pages.json";
@@ -40,7 +40,7 @@ namespace RedditSharp
          }
       }
 
-      protected internal Wiki(Reddit reddit, Subreddit subreddit, IAsyncWebAgent webAgent)
+      protected internal Wiki(Reddit reddit, Subreddit subreddit, IWegAgent webAgent)
       {
          Reddit = reddit;
          Subreddit = subreddit;

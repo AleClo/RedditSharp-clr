@@ -20,9 +20,9 @@ namespace RedditSharp.Things
       private Reddit Reddit { get; set; }
 
       [JsonIgnore]
-      private IAsyncWebAgent WebAgent { get; set; }
+      private IWegAgent WebAgent { get; set; }
 
-      public Comment Init(Reddit reddit, JToken json, IAsyncWebAgent webAgent, Thing sender)
+      public Comment Init(Reddit reddit, JToken json, IWegAgent webAgent, Thing sender)
       {
          var data = CommonInit(reddit, json, webAgent, sender);
          ParseComments(reddit, json, webAgent, sender);
@@ -30,7 +30,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      public async Task<Comment> InitAsync(Reddit reddit, JToken json, IAsyncWebAgent webAgent, Thing sender)
+      public async Task<Comment> InitAsync(Reddit reddit, JToken json, IWegAgent webAgent, Thing sender)
       {
          var data = CommonInit(reddit, json, webAgent, sender);
          await ParseCommentsAsync(reddit, json, webAgent, sender);
@@ -39,7 +39,7 @@ namespace RedditSharp.Things
          return this;
       }
 
-      private JToken CommonInit(Reddit reddit, JToken json, IAsyncWebAgent webAgent, Thing sender)
+      private JToken CommonInit(Reddit reddit, JToken json, IWegAgent webAgent, Thing sender)
       {
          base.Init(reddit, webAgent, json);
          var data = json["data"];
@@ -57,7 +57,7 @@ namespace RedditSharp.Things
          return data;
       }
 
-      private void ParseComments(Reddit reddit, JToken data, IAsyncWebAgent webAgent, Thing sender)
+      private void ParseComments(Reddit reddit, JToken data, IWegAgent webAgent, Thing sender)
       {
          // Parse sub comments
          var replies = data["data"]["replies"];
@@ -70,7 +70,7 @@ namespace RedditSharp.Things
          Comments = subComments.ToArray();
       }
 
-      private async Task ParseCommentsAsync(Reddit reddit, JToken data, IAsyncWebAgent webAgent, Thing sender)
+      private async Task ParseCommentsAsync(Reddit reddit, JToken data, IWegAgent webAgent, Thing sender)
       {
          // Parse sub comments
          var replies = data["data"]["replies"];
