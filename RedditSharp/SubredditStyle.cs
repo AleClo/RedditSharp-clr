@@ -26,7 +26,7 @@ namespace RedditSharp
       {
          Images = new List<SubredditImage>();
          var data = json["data"];
-         CSS = HttpUtility.HtmlDecode(data["stylesheet"].Value<string>());
+         CSS = HttpHelper.HtmlDecode(data["stylesheet"].Value<string>());
          foreach (var image in data["images"])
          {
             Images.Add(new SubredditImage(

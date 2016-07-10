@@ -306,7 +306,7 @@ namespace RedditSharp.Things
 
          if (limit.HasValue)
          {
-            var query = HttpUtility.ParseQueryString(string.Empty);
+            var query = HttpHelper.ParseQueryString(string.Empty);
             query.Add("limit", limit.Value.ToString());
             url = string.Format("{0}?{1}", url, query);
          }

@@ -10,6 +10,7 @@ using RedditSharp.Things;
 using System.Threading.Tasks;
 using System.Web;
 
+
 namespace RedditSharp
 {
    /// <summary>
@@ -17,7 +18,7 @@ namespace RedditSharp
    /// </summary>
    public class Reddit
    {
-      #region Constant Urls
+#region Constant Urls
 
       private const string SslLoginUrl = "https://ssl.reddit.com/api/login";
       private const string OAuthTokenUrl = "https://www.reddit.com/api/v1/access_token";
@@ -42,7 +43,7 @@ namespace RedditSharp
       private const string SearchSubredditsUrl = "/subreddits/search.json?q={0}";
 
 
-      #endregion
+#endregion
 
 
       internal IAsyncWebAgent WebAgent { get; set; }
@@ -155,7 +156,7 @@ namespace RedditSharp
          var auth = System.Text.Encoding.UTF8.GetBytes($"{appId}:{secret}");
          request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(auth));
 
-         var content = new StringContent($"grant_type=password&username={HttpUtility.UrlEncode(username)}&password={HttpUtility.UrlEncode(password)}");
+         var content = new StringContent($"grant_type=password&username={HttpHelper.UrlEncode(username)}&password={HttpHelper.UrlEncode(password)}");
          request.Content = content;
          request.Content.Headers.ContentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
 
@@ -271,7 +272,7 @@ namespace RedditSharp
          User = new AuthenticatedUser().Init(this, json, WebAgent);
       }
 
-      #region Obsolete Getter Methods
+#region Obsolete Getter Methods
 
       [Obsolete("Use User property instead")]
       public AuthenticatedUser GetMe()
@@ -279,7 +280,7 @@ namespace RedditSharp
          return User;
       }
 
-      #endregion Obsolete Getter Methods
+#endregion Obsolete Getter Methods
 
       public Subreddit GetSubreddit(string name)
       {
@@ -522,7 +523,7 @@ namespace RedditSharp
          return new Listing<T>(this, string.Format(SearchUrl, query, sort, time), WebAgent);
       }
 
-      #region SubredditSearching
+#region SubredditSearching
 
       /// <summary>
       /// Returns a Listing of newly created subreddits.
@@ -569,9 +570,9 @@ namespace RedditSharp
          return new Listing<Subreddit>(this, string.Format(SearchSubredditsUrl, query), WebAgent);
       }
 
-      #endregion SubredditSearching
+#endregion SubredditSearching
 
-      #region Helpers
+#region Helpers
 
       protected async internal Task<T> GetThingAsync<T>(string url) where T : Thing
       {
@@ -586,6 +587,6 @@ namespace RedditSharp
          return (T)Thing.Parse(this, json, WebAgent);
       }
 
-      #endregion
+#endregion
    }
 }

@@ -225,7 +225,7 @@ namespace RedditSharp
                   RedditAPINameAttribute;
             string name = attr == null ? property.Name : attr.Name;
             var entry = Convert.ToString(property.GetValue(data, null));
-            value += name + "=" + HttpUtility.UrlEncode(entry).Replace(";", "%3B").Replace("&", "%26") + "&";
+            value += name + "=" + HttpHelper.UrlEncode(entry).Replace(";", "%3B").Replace("&", "%26") + "&";
          }
 
          if (additionalFields == null)
@@ -234,7 +234,7 @@ namespace RedditSharp
          for (int i = 0; i < additionalFields.Length; i += 2)
          {
             var entry = Convert.ToString(additionalFields[i + 1]) ?? string.Empty;
-            value += additionalFields[i] + "=" + HttpUtility.UrlEncode(entry).Replace(";", "%3B").Replace("&", "%26") +
+            value += additionalFields[i] + "=" + HttpHelper.UrlEncode(entry).Replace(";", "%3B").Replace("&", "%26") +
                      "&";
          }
          value = value.Remove(value.Length - 1); // Remove trailing &
