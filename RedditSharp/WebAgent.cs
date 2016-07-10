@@ -219,10 +219,7 @@ namespace RedditSharp
          string value = "";
          foreach (var property in properties)
          {
-            var attr =
-               property.GetCustomAttributes(typeof(RedditAPINameAttribute), false).FirstOrDefault() as
-                  RedditAPINameAttribute;
-            string name = attr == null ? property.Name : attr.Name;
+            string name = property.Name;
             var entry = Convert.ToString(property.GetValue(data, null));
             value += name + "=" + HttpHelper.UrlEncode(entry).Replace(";", "%3B").Replace("&", "%26") + "&";
          }
