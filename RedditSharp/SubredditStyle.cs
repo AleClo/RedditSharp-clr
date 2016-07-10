@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net.Http;
 using Newtonsoft.Json.Linq;
 using System.Web;
 using RedditSharp.Things;
