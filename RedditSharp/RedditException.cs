@@ -6,7 +6,7 @@ namespace RedditSharp
    /// <summary>
    /// Represents an error that occurred during accessing or manipulating data on Reddit.
    /// </summary>
-   [Serializable]
+   //[Serializable]
    public class RedditException : Exception
    {
       /// <summary>
@@ -47,9 +47,9 @@ namespace RedditSharp
       /// <exception cref="System.ArgumentNullException">The info parameter is null.</exception>
       /// <exception cref="System.Runtime.Serialization.SerializationException">The class name
       /// is null or System.Exception.HResult is zero (0).</exception>
-      protected RedditException(SerializationInfo info, StreamingContext context)
-         : base(info, context)
-      {
-      }
+      //protected RedditException(SerializationInfo info, StreamingContext context)
+      //   : base(info, context)
+      //{
+      //}
    }
 }

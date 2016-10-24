@@ -8,7 +8,6 @@ using System.Net.Http.Headers;
 using System.Security.Authentication;
 using RedditSharp.Things;
 using System.Threading.Tasks;
-using System.Web;
 
 
 namespace RedditSharp
@@ -147,8 +146,8 @@ namespace RedditSharp
       /// <returns></returns>
       public AuthenticatedUser LogIn(string username, string password, string appId, string secret)
       {
-         if (Type.GetType("Mono.Runtime") != null)
-            ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, ssl) => true;
+         //if (Type.GetType("Mono.Runtime") != null)
+         //   ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, ssl) => true;
 
 
          // get token
@@ -188,8 +187,8 @@ namespace RedditSharp
       {
 
          throw new NotImplementedException("not done yet");
-         if (Type.GetType("Mono.Runtime") != null)
-            ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, ssl) => true;
+         //if (Type.GetType("Mono.Runtime") != null)
+         //   ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, ssl) => true;
 
 
 
@@ -219,8 +218,8 @@ namespace RedditSharp
       /// <returns></returns>
       public async Task<AuthenticatedUser> LogInAsync(string username, string password)
       {
-         if (Type.GetType("Mono.Runtime") != null)
-            ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, ssl) => true;
+         //if (Type.GetType("Mono.Runtime") != null)
+         //   ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, ssl) => true;
 
          var data = new
          {

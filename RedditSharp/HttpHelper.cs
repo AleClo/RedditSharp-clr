@@ -1,81 +1,87 @@
-﻿using System.Collections.Specialized;
+﻿using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Primitives;
+using System;
+using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
+using System.Net;
 using System.Text;
-using System.Web;
+
 
 namespace RedditSharp
 {
    internal static class HttpHelper
    {
-      public static string UrlEncode(byte[] bytes)
-      {
-         return HttpUtility.UrlEncode(bytes);
-      }
+      //public static string UrlEncode(byte[] bytes)
+      //{
+      //   return WebUtility.UrlEncode(bytes);
+      //}
 
-      public static string UrlEncode(byte[] bytes, int offset, int count)
-      {
-         return HttpUtility.UrlEncode(bytes,offset,count);
-      }
+      //public static string UrlEncode(byte[] bytes, int offset, int count)
+      //{
+      //   return WebUtility.UrlEncode(bytes,offset,count);
+      //}
 
       public static string UrlEncode(string s)
       {
-         return HttpUtility.UrlEncode(s);
+         return WebUtility.UrlEncode(s);
       }
 
-      public static string UrlEncode(string s, Encoding e)
-      {
-         return HttpUtility.UrlEncode(s, e);
-      }
+      //public static string UrlEncode(string s, Encoding e)
+      //{
+      //   return WebUtility.UrlEncode(s, e);
+      //}
 
       public static string UrlDecode(string s)
       {
-         return HttpUtility.UrlDecode(s);
+         return WebUtility.UrlDecode(s);
       }
 
-      public static string UrlDecode(string s,Encoding e)
-      {
-         return HttpUtility.UrlDecode(s, e);
-      }
+      //public static string UrlDecode(string s,Encoding e)
+      //{
+      //   return WebUtility.UrlDecode(s, e);
+      //}
 
-      public static string UrlDecode(byte[] bytes, int offset, int count,Encoding e)
-      {
-         return HttpUtility.UrlDecode(bytes, offset, count, e);
-      }
+      //public static string UrlDecode(byte[] bytes, int offset, int count,Encoding e)
+      //{
+      //   return WebUtility.UrlDecode(bytes, offset, count, e);
+      //}
 
-      public static string UrlDecode(byte[] bytes, Encoding e)
-      {
-         return HttpUtility.UrlDecode(bytes, e);
-      }
+      //public static string UrlDecode(byte[] bytes, Encoding e)
+      //{
+      //   return WebUtility.UrlDecode(bytes, e);
+      //}
 
       public static string HtmlEncode(string s)
       {
-         return HttpUtility.HtmlEncode(s);
+         return WebUtility.HtmlEncode(s);
       }
 
-      public static void HtmlEncode(string s,TextWriter output)
-      {
-         HttpUtility.HtmlEncode(s,output);
-      }
+      //public static void HtmlEncode(string s,TextWriter output)
+      //{
+      //   WebUtility.HtmlEncode(s,output);
+      //}
 
       public static string HtmlDecode(string s)
       {
-         return HttpUtility.HtmlDecode(s);
+         return WebUtility.HtmlDecode(s);
       }
 
-      public static void HtmlDecode(string s, TextWriter output)
+      //public static void HtmlDecode(string s, TextWriter output)
+      //{
+      //   WebUtility.HtmlDecode(s, output);
+      //}
+
+      public static Dictionary<string, StringValues> ParseQueryString(string s)
       {
-         HttpUtility.HtmlDecode(s, output);
+            return QueryHelpers.ParseQuery(s);
+        // return WebUtility.ParseQueryString(s);
       }
 
-      public static NameValueCollection ParseQueryString(string s)
-      {
-         return HttpUtility.ParseQueryString(s);
-      }
-
-      public static NameValueCollection ParseQueryString(string s,Encoding e)
-      {
-         return HttpUtility.ParseQueryString(s,e);
-      }
+      //public static NameValueCollection ParseQueryString(string s,Encoding e)
+      //{
+      //   return WebUtility.ParseQueryString(s,e);
+      //}
 
 
    }
